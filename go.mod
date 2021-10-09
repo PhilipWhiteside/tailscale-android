@@ -7,10 +7,10 @@ require (
 	gioui.org v0.0.0-20211016064351-4d22a926a9dd
 	gioui.org/cmd v0.0.0-20210925100615-41f3a7e74ee6
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
-	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6
-	golang.zx2c4.com/wireguard v0.0.0-20211012062646-82d2aa87aa62
+	golang.org/x/sys v0.0.0-20211020174200-9d6173849985
+	golang.zx2c4.com/wireguard v0.0.0-20211020205005-82e0b734e5d2
 	inet.af/netaddr v0.0.0-20210721214506-ce7a8ad02cc1
-	tailscale.com v1.1.1-0.20211021015850-c60806b55771
+	tailscale.com v1.1.1-0.20211023205107-787a53b3a93f
 )
 
 require (
@@ -27,6 +27,7 @@ require (
 	github.com/insomniacslk/dhcp v0.0.0-20210621130208-1cac67f12b1e // indirect
 	github.com/josharian/native v0.0.0-20200817173448-b6b71def0850 // indirect
 	github.com/jsimonetti/rtnetlink v0.0.0-20210525051524-4cc836578190 // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mdlayher/sdnotify v0.0.0-20210228150836-ea3ec207d697 // indirect
 	github.com/mdlayher/socket v0.0.0-20210307095302-262dc9984e00 // indirect
@@ -42,7 +43,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210927181540-4e4d966f7476 // indirect
+	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
@@ -50,4 +51,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	golang.zx2c4.com/wireguard/windows v0.4.10 // indirect
 	inet.af/netstack v0.0.0-20210622165351-29b14ebc044e // indirect
+	nhooyr.io/websocket v1.8.7 // indirect
 )

@@ -24,6 +24,9 @@ import android.content.pm.Signature;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.net.VpnService;
 import android.view.View;
@@ -39,6 +42,7 @@ import java.io.IOException;
 import java.io.File;
 import java.io.FileOutputStream;
 
+import java.lang.reflect.Method;
 import java.lang.StringBuilder;
 
 import java.net.InetAddress;
@@ -86,7 +90,6 @@ public class App extends Application {
 		createNotificationChannel(NOTIFY_CHANNEL_ID, "Notifications", NotificationManagerCompat.IMPORTANCE_DEFAULT);
 		createNotificationChannel(STATUS_CHANNEL_ID, "VPN Status", NotificationManagerCompat.IMPORTANCE_LOW);
 		createNotificationChannel(FILE_CHANNEL_ID, "File transfers", NotificationManagerCompat.IMPORTANCE_DEFAULT);
-
 	}
 
 	private void registerNetworkCallback() {
@@ -372,4 +375,116 @@ public class App extends Application {
 
             return sb.toString();
         }
+
+	// On Android versions prior to Android 8, we can directly query the DNS
+	// servers the system is using. More recent Android releases return empty strings.
+	//
+	// The list of DNS search domains does not appear to be available in system properties.
+	String getDnsServersFromSystemProperties() {
+		try {
+			Class SystemProperties = Class.forName("android.os.SystemProperties");
+			Method method = SystemProperties.getMethod("get", String.class);
+			List<String> servers = new ArrayList<String>();
+			for (String name : new String[]{"net.dns1", "net.dns2", "net.dns3", "net.dns4"}) {
+				String value = (String) method.invoke(null, name);
+				if (value != null && !value.isEmpty() &&
+						!value.equals("100.100.100.100") &&
+						!servers.contains(value)) {
+					servers.add(value);
+				}
+			}
+			return String.join(" ", servers);
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	// Implements a rough priority for different types of network transport, used
+	// in a heuristic to pick which DNS servers to use.
+	int getPreferabilityForNetwork(ConnectivityManager cMgr, Network network) {
+		NetworkCapabilities nc = cMgr.getNetworkCapabilities(network);
+
+		if (nc.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+			return 0;
+		} else if (nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+			return 1;
+		} else if (nc.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+			return 2;
+		} else if (nc.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+			return -1;
+		} else {
+			return 3;
+		}
+	}
+
+	// This implementation can work through Android 12 (SDK 30). In SDK 31 the
+	// getAllNetworks() method is deprecated and we'll need to implement a
+	// android.net.ConnectivityManager.NetworkCallback instead to monitor
+	// link changes and track which DNS server to use.
+	String getDnsConfigFromLinkProperties() {
+		ConnectivityManager cMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		if (cMgr == null) {
+			return "";
+		}
+
+		Network[] networks = cMgr.getAllNetworks();
+		if (networks == null) {
+			// Android 6 often returns an empty list, but we can try again with
+			// just the active network.
+			Network active = cMgr.getActiveNetwork();
+			if (active == null) {
+				return "";
+			}
+			networks = new Network[]{active};
+		}
+
+		String[] dnsConfigs = new String[]{"", "", "", ""};
+		for (Network network : networks) {
+			int idx = getPreferabilityForNetwork(cMgr, network);
+			if (idx < 0) {
+				continue;
+			}
+
+			LinkProperties linkProp = cMgr.getLinkProperties(network);
+			String servers = "";
+			if (linkProp.isPrivateDnsActive()) {
+				String d = linkProp.getPrivateDnsServerName();
+				if (d != null) {
+					servers = d;
+				}
+			}
+			if (servers.isEmpty()) {
+				List<InetAddress> dnsList = linkProp.getDnsServers();
+				StringBuilder sb = new StringBuilder("");
+				for (InetAddress ip : dnsList) {
+					sb.append(ip.getHostAddress() + " ");
+				}
+				servers = sb.toString();
+			}
+
+			String domains = "";
+			String d = linkProp.getDomains();
+			if (d != null) {
+				domains = d;
+			}
+
+			dnsConfigs[idx] = servers + "\n" + domains;
+		}
+
+		for (String s : dnsConfigs) {
+			if (!s.trim().isEmpty()) {
+				return s;
+			}
+		}
+
+		return "";
+	}
+
+	String getDnsConfigAsString() {
+		String s = getDnsServersFromSystemProperties();
+		if (!s.trim().isEmpty()) {
+			return s;
+		}
+		return getDnsConfigFromLinkProperties();
+	}
 }
