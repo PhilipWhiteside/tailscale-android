@@ -1,0 +1,10 @@
+name: build
+inputs:
+  url:
+    required: true
+    default: 'https://example.com'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - make tailscale-debug.apk
